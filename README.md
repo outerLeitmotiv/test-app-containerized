@@ -50,8 +50,8 @@ To test the webhook functionality with randomized data:
 python3 -m venv .venv
 source .venv/bin/activate
 
-# Install faker
-pip install faker
+# Install the requirements
+pip install requirements.txt
 
 # Run simulator
 python3 petzi_simulator.py http://localhost:5000/webhook mySecretKey
