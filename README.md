@@ -147,7 +147,3 @@ The project is designed as a foundation for:
 ## Deployment
 
 The project is fully containerized using Docker, making deployment straightforward and consistent across different environments. All necessary services are defined in docker-compose.yml.
-
-## License
-
-MIT License
