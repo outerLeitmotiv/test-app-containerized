@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16
+    container_name: postgres_db
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - petzi-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - petzi-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  webhook:
+    build:
+      context: ./petzi-app
+      dockerfile: dockerfile
+    container_name: webhook
+    ports:
+      - "5000:5000"
+    environment:
+      - DATABASE_URI=${DATABASE_URI}
+      - SECRET_KEY=${SECRET_KEY}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+    networks:
+      - petzi-network
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  view:
+    build:
+      context: ./petzi-view
+      dockerfile: dockerfile
+    container_name: view
+    ports:
+      - "8080:80"
+    networks:
+      - petzi-network
+    depends_on:
+      - webhook
+    restart: unless-stopped
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    container_name: cadvisor
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/sys:ro
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    command:
+      - --docker_only=true
+      - --housekeeping_interval=30s
+      - --max_housekeeping_interval=35s
+      - --global_housekeeping_interval=45s
+      - --allow_dynamic_housekeeping=true
+      - --event_storage_age_limit=default=24h
+      - --event_storage_event_limit=default=100000
+      - --storage_duration=2m
+      - --disable_metrics=percpu,hugetlb,sched,tcp,udp,advtcp
+    ports:
+      - "8081:8080"
+    networks:
+      - petzi-network
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    restart: unless-stopped
+
+networks:
+  petzi-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres_data:
+    driver: local

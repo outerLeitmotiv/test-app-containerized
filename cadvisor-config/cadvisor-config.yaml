@@ -1,0 +1,12 @@
+# Global configurations
+global:
+  housekeeping_interval: "30s"
+  metrics_backend:
+    type: "prometheus"
+
+custom_metrics:
+  - name: "webhook_metrics"
+    metric_config:
+      endpoint: "http://webhook:5000/metrics"
+      metrics_path: "/metrics"
+      scrape_interval: "30s"
