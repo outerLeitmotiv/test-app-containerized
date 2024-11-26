@@ -71,19 +71,16 @@ services:
       image: gcr.io/cadvisor/cadvisor:v0.47.2
       container_name: cadvisor
       volumes:
-        - /:/rootfs:ro          # Required: Root filesystem
-        - /var/run:/var/run:ro  # Required: Docker socket
-        - /sys:/sys:ro          # Required: System information
-        - /var/lib/docker/:/var/lib/docker:ro  # Required: Docker containers data
-      command:
-        - --docker_only=true    # Only monitor Docker containers
-        - --housekeeping_interval=30s  # How often to collect metrics
+        - /:/rootfs:ro         
+        - /var/run:/var/run:ro  
+        - /sys:/sys:ro         
+        - /var/lib/docker/:/var/lib/docker:ro  
       ports:
-        - "8081:8080"          # Expose metrics endpoint
+        - "8081:8080"          
       networks:
-        - app-network        # Connect to our application network
+        - app-network        
       restart: unless-stopped
-
+      
 networks:
   app-network:
     driver: bridge
