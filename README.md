@@ -20,7 +20,7 @@ This POC integrates PostgreSQL for data storage, RabbitMQ for message queuing, a
 Clone the repository and set up the project:
 
 ```sh
-git clone https://github.com/YOUR_USERNAME/cadvisor-metrics-poc
+git clone https://github.com/outerLeitmotiv/test-app-containerized
 cd cadvisor-metrics-poc
 docker-compose up --build
 ```
@@ -51,13 +51,13 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 # Install the requirements
-pip install requirements.txt
+pip install -r requirements.txt
 
 # Run simulator
-python3 petzi_simulator.py http://localhost:5000/webhook mySecretKey
+python3 simulator.py http://localhost:5000/webhook mySecretKey
 
 # Send multiple random requests
-python3 petzi_simulator.py http://localhost:5000/webhook mySecretKey --count 5
+python3 simulator.py http://localhost:5000/webhook mySecretKey --count 5
 ```
 
 #### RabbitMQ Management Interface
@@ -77,15 +77,15 @@ pip install -r requirements.txt
 2. Start the application:
 
 ```sh
-python3 petzi_webhook.py
+python3 webhook.py
 ```
 
 ### Testing
 
-The `petzi_simulator.py` script is available for testing the webhook functionality with randomized data.
+The `simulator.py` script is available for testing the webhook functionality with randomized data.
 
 ```sh
-python petzi_simulator.py http://localhost:5000/webhook mySecret
+python simulator.py http://localhost:5000/webhook mySecret
 ```
 
 ### Database Verification

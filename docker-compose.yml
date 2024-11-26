@@ -10,7 +10,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - petzi-network
+      - app-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -25,7 +25,7 @@ services:
       - "5672:5672"
       - "15672:15672"
     networks:
-      - petzi-network
+      - app-network
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -35,7 +35,7 @@ services:
 
   webhook:
     build:
-      context: ./petzi-app
+      context: ./backend-app
       dockerfile: dockerfile
     container_name: webhook
     ports:
@@ -46,7 +46,7 @@ services:
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
     networks:
-      - petzi-network
+      - app-network
     depends_on:
       db:
         condition: service_healthy
@@ -56,47 +56,36 @@ services:
 
   view:
     build:
-      context: ./petzi-view
+      context: ./frontend-app
       dockerfile: dockerfile
     container_name: view
     ports:
       - "8080:80"
     networks:
-      - petzi-network
+      - app-network
     depends_on:
       - webhook
     restart: unless-stopped
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.47.2
-    container_name: cadvisor
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/sys:ro
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-    command:
-      - --docker_only=true
-      - --housekeeping_interval=30s
-      - --max_housekeeping_interval=35s
-      - --global_housekeeping_interval=45s
-      - --allow_dynamic_housekeeping=true
-      - --event_storage_age_limit=default=24h
-      - --event_storage_event_limit=default=100000
-      - --storage_duration=2m
-      - --disable_metrics=percpu,hugetlb,sched,tcp,udp,advtcp
-    ports:
-      - "8081:8080"
-    networks:
-      - petzi-network
-    privileged: true
-    devices:
-      - /dev/kmsg:/dev/kmsg
-    restart: unless-stopped
+      image: gcr.io/cadvisor/cadvisor:v0.47.2
+      container_name: cadvisor
+      volumes:
+        - /:/rootfs:ro          # Required: Root filesystem
+        - /var/run:/var/run:ro  # Required: Docker socket
+        - /sys:/sys:ro          # Required: System information
+        - /var/lib/docker/:/var/lib/docker:ro  # Required: Docker containers data
+      command:
+        - --docker_only=true    # Only monitor Docker containers
+        - --housekeeping_interval=30s  # How often to collect metrics
+      ports:
+        - "8081:8080"          # Expose metrics endpoint
+      networks:
+        - app-network        # Connect to our application network
+      restart: unless-stopped
 
 networks:
-  petzi-network:
+  app-network:
     driver: bridge
     ipam:
       driver: default

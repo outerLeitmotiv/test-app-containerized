@@ -6,7 +6,7 @@ def sending_message(data):
     connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
     channel = connection.channel()
 
-    channel.queue_declare(queue='petzi')
+    channel.queue_declare(queue='app')
 
     event_type = data.get('event')
     details = data.get('details', {})
@@ -19,8 +19,8 @@ def sending_message(data):
     else:
         message = f"Unknown Event: {json.dumps(data)}"
 
-    channel.basic_publish(exchange='', routing_key='petzi', body=message)
-    print(f" [x] Sent message to 'petzi' queue: {message}")
+    channel.basic_publish(exchange='', routing_key='app', body=message)
+    print(f" [x] Sent message to 'app' queue: {message}")
 
     connection.close()
 
@@ -31,8 +31,8 @@ def receive_message():
 
     connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
     channel = connection.channel()
-    channel.queue_declare(queue='petzi')
-    channel.basic_consume(queue='petzi', on_message_callback=callback, auto_ack=True)
+    channel.queue_declare(queue='app')
+    channel.basic_consume(queue='app', on_message_callback=callback, auto_ack=True)
 
     print(' [*] Waiting for messages. To exit press CTRL+C')
     channel.start_consuming()

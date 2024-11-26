@@ -4,8 +4,7 @@ import hmac
 import requests
 import random
 import json
-from faker import Faker  # You'll need to pip install faker
-
+from faker import Faker
 fake = Faker()
 
 def generate_random_ticket():

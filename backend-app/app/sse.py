@@ -36,7 +36,7 @@ class RabbitMQConnection:
                 
                 self.connection = pika.BlockingConnection(parameters)
                 self.channel = self.connection.channel()
-                self.channel.queue_declare(queue='petzi')
+                self.channel.queue_declare(queue='app')
                 logger.info("Successfully connected to RabbitMQ")
                 return True
                 
@@ -82,7 +82,7 @@ def stream_messages():
                         logger.error(f"Error processing message: {e}")
 
                 rabbitmq.channel.basic_consume(
-                    queue='petzi',
+                    queue='app',
                     on_message_callback=callback,
                     auto_ack=True
                 )
