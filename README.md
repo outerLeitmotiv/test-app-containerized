@@ -75,6 +75,21 @@ Metrics exposed:
 - cAdvisor: `http://localhost:8081`
 - RabbitMQ Management: `http://localhost:15672` (credentials: guest/guest)
 - Vue.js Frontend: `http://localhost:8080`
+- Prometheus: `http://localhost:9090`
+
+### Prometheus
+
+- URL: `http://localhost:9090`
+- Purpose: Scrapes and stores metrics from our application and cAdvisor
+- Features:
+  - Query interface for metrics analysis
+  - Time-series data storage
+  - Target status monitoring at Status -> Targets
+
+Example queries:
+
+- Total successful requests: `webhook_requests_total{status="success"}`
+- Request rate over 5 minutes: `rate(webhook_requests_total[5m])`
 
 ## Testing
 
