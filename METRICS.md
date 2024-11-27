@@ -1,6 +1,6 @@
-# **Custom Metrics Implementation with cAdvisor**
+# Custom Metrics Implementation with cAdvisor
 
-## **1. Prometheus Client Setup**
+## 1. Prometheus Client Setup
 
 Ensure the appropriate Prometheus client is used. This will expose metrics that Prometheus can scrape.
 
@@ -9,11 +9,9 @@ Ensure the appropriate Prometheus client is used. This will expose metrics that 
 prometheus-client==0.19.0
 ```
 
----
+## 2. Metrics Definition
 
-## **2. Metrics Definition**
-
-Define custom metrics in the application code. The following example shows how to define metrics for tracking webhook requests, processing time, and payload size:
+Define custom metrics in the application code:
 
 ```python
 # backend-app/app/metrics.py
@@ -48,39 +46,9 @@ def metrics_endpoint():
     return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
 ```
 
----
+## 3. cAdvisor Configuration
 
-## **3. Metrics Integration in Webhook Route**
-
-Integrate the custom metrics into the application logic (e.g., for webhook handling):
-
-```python
-# backend-app/app/routes.py
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    start_time = time.time()
-    
-    try:
-        data = request.get_json()
-        webhook_payload_size.inc(len(json.dumps(data).encode('utf-8')))
-        
-        # Process webhook...
-        
-        webhook_requests_total.labels(status='success').inc()
-        webhook_processing_time.observe(time.time() - start_time)
-        return jsonify({'status': 'success'}), 200
-        
-    except Exception as e:
-        webhook_requests_total.labels(status='error').inc()
-        webhook_processing_time.observe(time.time() - start_time)
-        return jsonify({'error': str(e)}), 500
-```
-
----
-
-## **4. cAdvisor Configuration**
-
-Set up cAdvisor to monitor Docker containers using the following configuration in `docker-compose.yml`:
+Configure cAdvisor to monitor Docker containers:
 
 ```yaml
 # docker-compose.yml
@@ -99,28 +67,65 @@ cadvisor:
       - "8081:8080"
     networks:
       - app-network
-    restart: unless-stopped
 ```
 
----
+## 4. Prometheus Setup
 
-## **5. Exposed Metrics**
+Add Prometheus to scrape metrics from both the application and cAdvisor:
 
-The application and cAdvisor will expose metrics via HTTP endpoints that Prometheus can scrape:
+```yaml
+# docker-compose.yml
+prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - app-network
+```
 
-- **Application Metrics**: Accessible via `http://localhost:5000/metrics`.
-- **cAdvisor Metrics**: Accessible via `http://localhost:8081`.
+Configure Prometheus scraping:
 
-### **Sample Metrics Output**
+```yaml
+# prometheus/prometheus.yml
+global:
+  scrape_interval: 15s
 
-**Application Metrics**:
+scrape_configs:
+  - job_name: 'webhook'
+    static_configs:
+      - targets: ['webhook:5000']
 
-```plaintext
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+```
+
+## 5. Metrics Access Points
+
+- Application metrics: `http://localhost:5000/metrics`
+- cAdvisor interface: `http://localhost:8081`
+- Prometheus interface: `http://localhost:9090`
+
+## 6. Verification
+
+Test the metrics pipeline:
+
+```bash
+# Generate test data
+python3 simulator.py http://localhost:5000/webhook mysecretkey --count 5
+
+# Check raw metrics
+curl http://localhost:5000/metrics
+
+# Sample output:
 # HELP webhook_requests_total Total number of webhook requests processed
 # TYPE webhook_requests_total counter
-webhook_requests_total{status="success"} 42
-
-# HELP webhook_processing_time_seconds Time spent processing webhook requests
-# TYPE webhook_processing_time_seconds histogram
-webhook_processing_time_seconds_bucket{le="0.01"} 10
+webhook_requests_total{status="success"} 5
 ```
+
+Check in Prometheus UI:
+
+1. Go to `http://localhost:9090`
+2. Query: `webhook_requests_total`
