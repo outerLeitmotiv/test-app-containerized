@@ -1,6 +1,6 @@
 # Custom Metrics Implementation with cAdvisor
 
-## System architecture
+## Findings
 
 cAdvisor provides system-level metrics about Docker containers, but lacks the ability to expose custom application-specific metrics
 
@@ -10,17 +10,9 @@ This is addressed by creating a custom metrics exporter, which exposes these met
 * Custom Metrics Exporter provides application-level metrics.
 * Prometheus scrapes both metrics.
 
-```plaintext
-+----------------+       +------------------+
-|  Application   |----->| Custom Metrics   |
-|   Exporter     |       | (Exporter)       |
-+----------------+       +------------------+
-         |                        |
-         v                        v
-+----------------+       +------------------+
-|    cAdvisor    |----->|    Prometheus    |
-+----------------+       +------------------+
-```
+## Architecture
+
+![alt text](flow_diagram.png)
 
 ## Prometheus Client Setup
 
@@ -62,26 +54,26 @@ def metrics_endpoint():
 ### **How It Works:**
 
 1. **Metric Definitions**:
-   - **Counter**: This metric is for counting things that only ever increase (like requests). In this case, it tracks the total number of webhook requests, broken down by their status (e.g., `success`, `failure`).
-   - **Histogram**: This tracks values over time, specifically useful for measuring durations or distributions (e.g., request processing time). Here, it measures the time taken to process webhook requests.
-   - **Counter for Payload Size**: Tracks the total size of the payloads received by the webhook.
+   * **Counter**: This metric is for counting things that only ever increase (like requests). In this case, it tracks the total number of webhook requests, broken down by their status (e.g., `success`, `failure`).
+   * **Histogram**: This tracks values over time, specifically useful for measuring durations or distributions (e.g., request processing time). Here, it measures the time taken to process webhook requests.
+   * **Counter for Payload Size**: Tracks the total size of the payloads received by the webhook.
 
 2. **Exposing Metrics**:
-   - The `metrics_endpoint()` function is responsible for exposing these metrics in a Prometheus-compatible format. It uses the `prometheus_client` to gather and serve all defined metrics at the `/metrics` endpoint.
-   - The **Flask Response** is set with the proper MIME type (`CONTENT_TYPE_LATEST`) to make it compatible with Prometheus scraping.
+   * The `metrics_endpoint()` function is responsible for exposing these metrics in a Prometheus-compatible format. It uses the `prometheus_client` to gather and serve all defined metrics at the `/metrics` endpoint.
+   * The **Flask Response** is set with the proper MIME type (`CONTENT_TYPE_LATEST`) to make it compatible with Prometheus scraping.
 
 3. **Metrics Exposure**:
-   - The `/metrics` endpoint becomes the main endpoint that **Prometheus** will scrape to collect data. When Prometheus scrapes this endpoint, it retrieves the latest values of all defined metrics.
+   * The `/metrics` endpoint becomes the main endpoint that **Prometheus** will scrape to collect data. When Prometheus scrapes this endpoint, it retrieves the latest values of all defined metrics.
 
 ### **Why This Approach?**
 
-- **Prometheus Format**: By using `prometheus_client` and the `generate_latest()` function, we ensure that the metrics are in the exact format Prometheus expects.
+* **Prometheus Format**: By using `prometheus_client` and the `generate_latest()` function, we ensure that the metrics are in the exact format Prometheus expects.
   
-- **Separation of Concerns**: The use of a Flask app allows us to isolate the metric-serving logic. This keeps our application code clean and focused while ensuring the metrics are available at a separate endpoint.
+* **Separation of Concerns**: The use of a Flask app allows us to isolate the metric-serving logic. This keeps our application code clean and focused while ensuring the metrics are available at a separate endpoint.
 
-- **Minimal Complexity**: We use simple, pre-built classes (e.g., `Counter`, `Histogram`) from the `prometheus_client` library to avoid unnecessary complexity. This allows us to stay focused on the core task of exposing metrics without overengineering the solution.
+* **Minimal Complexity**: We use simple, pre-built classes (e.g., `Counter`, `Histogram`) from the `prometheus_client` library to avoid unnecessary complexity. This allows us to stay focused on the core task of exposing metrics without overengineering the solution.
 
-- **Flask for Simplicity**: Flask is a lightweight framework that provides all we need to expose the `/metrics` endpoint. We avoid introducing heavier frameworks, keeping the solution simple and focused on the PoC.
+* **Flask for Simplicity**: Flask is a lightweight framework that provides all we need to expose the `/metrics` endpoint. We avoid introducing heavier frameworks, keeping the solution simple and focused on the PoC.
 
 ---
 
@@ -110,15 +102,15 @@ cadvisor:
 
 ### **Explanation of cAdvisor Configuration:**
 
-- **Volumes**: cAdvisor requires specific system directories to access container data. These include:
-  - `/rootfs`: Provides access to the entire filesystem.
-  - `/var/run`, `/sys`, `/var/lib/docker`: Needed to gather metrics related to container runtime and Docker itself.
+* **Volumes**: cAdvisor requires specific system directories to access container data. These include:
+  * `/rootfs`: Provides access to the entire filesystem.
+  * `/var/run`, `/sys`, `/var/lib/docker`: Needed to gather metrics related to container runtime and Docker itself.
 
-- **Command Flags**:
-  - `--docker_only=true`: Instructs cAdvisor to monitor only Docker containers.
-  - `--housekeeping_interval=30s`: Sets the housekeeping interval for cAdvisor to refresh container data every 30 seconds.
+* **Command Flags**:
+  * `--docker_only=true`: Instructs cAdvisor to monitor only Docker containers.
+  * `--housekeeping_interval=30s`: Sets the housekeeping interval for cAdvisor to refresh container data every 30 seconds.
 
-- **Ports**: Exposes the cAdvisor web interface on port `8081` for container metrics viewing.
+* **Ports**: Exposes the cAdvisor web interface on port `8081` for container metrics viewing.
 
 ---
 
@@ -157,19 +149,19 @@ scrape_configs:
 
 ### **Explanation of Prometheus Setup:**
 
-- **Scrape Interval**: Set to 15 seconds to pull metrics regularly.
+* **Scrape Interval**: Set to 15 seconds to pull metrics regularly.
   
-- **Scrape Configurations**:
-  - **Webhook job**: Prometheus scrapes metrics from the application at `http://webhook:5000/metrics`.
-  - **cAdvisor job**: Prometheus scrapes metrics from cAdvisor at `http://cadvisor:8080/metrics`.
+* **Scrape Configurations**:
+  * **Webhook job**: Prometheus scrapes metrics from the application at `http://webhook:5000/metrics`.
+  * **cAdvisor job**: Prometheus scrapes metrics from cAdvisor at `http://cadvisor:8080/metrics`.
 
 ---
 
 ## Metrics Access Points
 
-- **Application Metrics**: `http://localhost:5000/metrics`
-- **cAdvisor Interface**: `http://localhost:8081`
-- **Prometheus Interface**: `http://localhost:9090`
+* **Application Metrics**: `http://localhost:5000/metrics`
+* **cAdvisor Interface**: `http://localhost:8081`
+* **Prometheus Interface**: `http://localhost:9090`
 
 ---
 
@@ -200,5 +192,3 @@ Test the metrics pipeline:
 3. **Check in Prometheus UI**:
    1. Go to `http://localhost:9090`.
    2. Query: `webhook_requests_total`.
-
-
